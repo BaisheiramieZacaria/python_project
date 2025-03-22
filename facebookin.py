@@ -44,5 +44,5 @@ if __name__ == "__main__":
     test_facebook_login(driver, fb_username, fb_password)
 
     # Close browser after execution
-    time.sleep(5)  # Wait before closing to check login result
+    time.sleep(50)  # Wait before closing to check login result
     driver.quit()
