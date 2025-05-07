@@ -1,53 +1,69 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-import time
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import re
 
-# Function to initialize WebDriver
-def initialize_driver():
-    driver = webdriver.Chrome()
-    driver.maximize_window()
-    return driver
+driver = webdriver.Chrome()
+driver.get("http://10.10.99.18:8002/login")
+driver.maximize_window()
 
-# Function to log in
-def login(driver, username, password):
-    driver.get("http://10.10.99.18:8004/login")  # Open login page
-    time.sleep(2)
+wait = WebDriverWait(driver, 20)
 
-    # Find and fill username
-    username_field = driver.find_element(By.NAME, "username")
-    username_field.send_keys(username)
+try:
+    # Log in
+    username = wait.until(EC.presence_of_element_located((By.NAME, "username")))
+    password = driver.find_element(By.NAME, "password")
 
-    # Find and fill password
-    password_field = driver.find_element(By.NAME, "password")
-    password_field.send_keys(password)
+    username.clear()
+    username.send_keys("Superadmin@gmail.com")
 
-    # Click login button
-    login_button = driver.find_element(By.XPATH, "//button[text()='Log In']")
-    login_button.click()
-    time.sleep(3)  # Wait for login
+    password.clear()
+    password.send_keys("Dost@123")
+    password.send_keys(Keys.RETURN)
 
-# Function to navigate to "Applications" and extract data
-def navigate_and_extract_applications(driver):
-    driver.get("http://10.10.99.18:8004/applications")  # Open Applications page
-    time.sleep(3)
+    wait.until(EC.url_contains("http://10.10.99.18:8002/dashboard"))
 
-    # Extract all rows in the applications table
-    applications = driver.find_elements(By.XPATH, "//table/tbody/tr")
+    # Navigate to audit form
+    driver.get("http://10.10.99.18:8002/audit")
 
-    print("\n Extracted Applications:")
-    for app in applications:
-        columns = app.find_elements(By.TAG_NAME, "td")
-        if len(columns) >= 5:
-            app_no = columns[0].text
-            name = columns[1].text
-            engagement = columns[2].text
-            institution = columns[3].text
-            status = columns[4].text
-            print(f" {app_no} | {name} | {engagement} | {institution} | {status}")
+    # Click on add button to open the form
+    add_icon = wait.until(EC.element_to_be_clickable((By.XPATH, "//i[@class='fas fa-plus text-white-100']")))
+    add_icon.click()
 
-# Run automation
-driver = initialize_driver()
-login(driver, "sjjinahon@gmail.com", "Dost@123")  # Replace with valid credentials
-navigate_and_extract_applications(driver)
-driver.quit()  # Close browser
+    # Wait for the form or modal to appear
+    form_header = wait.until(EC.visibility_of_element_located((By.XPATH, "//h1[contains(text(), 'audit')]"
+)))
+
+    # Normalize and compare the form title
+    expected_form_title = "Auditee"
+    # Change this to the actual form name you expect
+    actual_form_title = re.sub(r'\s+', ' ', form_header.text).strip()
+
+    if actual_form_title == expected_form_title:
+        print("✅ Form title correct: 'Auditee'")
+    else:
+        print(f"❌ Form title mismatch! Expected: '{expected_form_title}'")
+
+    # Wait for form labels to be visible and assert text
+    label_checks = [
+        ("//label[@for='auditee_audit']", "Audit Title"),
+        ("//label[@for='auditee_name']", "Name of Auditee"),
+        ("//label[@for='auditee_staff']", "Assigned IAS Staff"),
+        ("//label[@for='auditee_remarks']", "Remarks"),
+
+    ]
+
+    for xpath, expected_text in label_checks:
+        label = wait.until(EC.visibility_of_element_located((By.XPATH, "//h1[contains(text(), 'audit')]")))
+        actual_text = re.sub(r'\s+', ' ', label.text).strip()
+        actual_text = re.sub(r'\s*/\s*', ' / ', actual_text)  # Normalize slashes
+
+        if actual_text == expected_text:
+            print(f"✅ Label correct: '{actual_text}'")
+        else:
+            print(f"❌ Label mismatch! Expected: '{expected_text}', Found: '{actual_text}'")
+
+finally:
+    driver.quit()

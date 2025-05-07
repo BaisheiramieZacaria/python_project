@@ -2,35 +2,30 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 
-# Function to open Facebook UI
-def open_facebook_ui():
-    driver = webdriver.Chrome()  # Open Chrome
-    driver.maximize_window()  # Fullscreen window
-    driver.get("https://www.facebook.com/")  # Open Facebook
+# Optional: Suppress unnecessary browser notifications
+options = webdriver.ChromeOptions()
+options.add_argument('--disable-notifications')
 
-    time.sleep(2)  # Allow time for page load
+# Start the WebDriver
+driver = webdriver.Chrome(options=options)
 
-    # Highlight Username Field
-    username_field = driver.find_element(By.NAME, "email")
-    username_field.click()
-    print("🔹 Clicked Username Field")
+# Go to the audit page
+driver.get("http://10.10.99.18:8002/audit")
 
-    time.sleep(1)
+# Wait for the page to load
+time.sleep(3)  # Use WebDriverWait for production use
 
-    # Highlight Password Field
-    password_field = driver.find_element(By.NAME, "pass")
-    password_field.click()
-    print("🔹 Clicked Password Field")
+try:
+    # Look for the "Audits" tab or heading
+    audit_tab = driver.find_element(By.XPATH, "//div[contains(text(), 'Audits')]")
 
-    time.sleep(1)
+    if audit_tab:
+        print("✅ Found table name: 'Audits'")
+    else:
+        print("❌ Table name 'Audits' not found.")
 
-    # Highlight Forgot Password Button
-    forgot_password = driver.find_element(By.LINK_TEXT, "Forgotten password?")
-    forgot_password.click()
-    print("🔹 Clicked 'Forgotten Password?' Link")
+except Exception as e:
+    print("⚠️ Error occurred:", e)
 
-    time.sleep(5)  # Observe UI
-    driver.quit()  # Close Browser
-
-# Run UI Design Test
-open_facebook_ui()
+# Optional: Close the browser
+driver.quit()
